@@ -174,6 +174,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     N, D = x.shape
     running_mean = bn_param.get('running_mean', np.zeros(D, dtype=x.dtype))
     running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
+    batch_mean = np.sum(x, axis=0) / N
+    batch_var = np.sum((x - batch_mean) ** 2, axis=0) / N
 
     out, cache = None, None
     if mode == 'train':
@@ -199,8 +201,10 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # might prove to be helpful.                                          #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        
+        norm_x = (x - batch_mean) / np.sqrt(batch_var + eps)
+        out = gamma * norm_x + beta
+        cache = ()
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -215,7 +219,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        norm_x = (x - batch_mean) / np.sqrt(batch_var + eps)
+        out = gamma * norm_x + beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
