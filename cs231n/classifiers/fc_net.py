@@ -188,7 +188,33 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        for i in range(self.num_layers):
+            Wi = 'W' + str(i+1)
+            bi = 'b' + str(i+1)
+            
+            if i == 0:
+                # initialize input_dim, hidden_dim[i]
+                self.params[Wi] = weight_scale * np.random.randn(input_dim, hidden_dims[0])
+                self.params[bi] = np.zeros(hidden_dims[0])
+                
+                if normalization is "batchnorm" or "layernorm":
+                    self.params['gamma' + str(i+1)] = np.ones(hidden_dims[i])
+                    self.params['beta' + str(i+1)] = np.zeros(hidden_dims[i])
+                
+            elif i < self.num_layers - 1:
+                # initialize hidden_dim[i-1], hidden_dim[i]
+                self.params[Wi] = weight_scale * np.random.randn(hidden_dims[i-1], hidden_dims[i])
+                self.params[bi] = np.zeros(hidden_dims[i])
+                
+                if normalization is 'batchnorm' or 'layernorm':
+                    self.params['gamma' + str(i+1)] = np.ones(hidden_dims[i])
+                    self.params['beta' + str(i+1)] = np.zeros(hidden_dims[i])
+                
+            else:
+                # initialize hidden_dim[i], num_classes
+                self.params[Wi] = weight_scale * np.random.randn(hidden_dims[i-1], num_classes)
+                self.params[bi] = np.zeros(num_classes)
+                
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -251,7 +277,7 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
