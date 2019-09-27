@@ -86,11 +86,11 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        # X: (N, d1, d2, d3)
-        # W1: (input_dim, hidden_dim)
-        # W2: (hidden_dim, num_classes)
+        W1, b1 = self.params['W1'], self.params['b1']
+        W2, b2 = self.params['W2'], self.params['b2']
         
-        
+        hidden, cache_hidden = affine_relu_forward(X, W1, b1)
+        scores, cache_out = affine_forward(hidden, W2, b2)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -114,7 +114,10 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dx = softmax_loss(scores, y)
+        loss += 0.5 * self.reg * (np.sum(W1 ** 2) + np.sum(W2 ** 2))
+        
+        dh, self.grads['W2'], self.grads['b2'] = affine_backward(dx, cache_out)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
