@@ -276,9 +276,40 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
         
+        caches = {}
+        num_layers = self.num_layers
 
+        for i in range(num_layers-1):
+            Wi = 'W' + str(i+1)
+            bi = 'b' + str(i+1)
+            
+            if i == 0:
+                out = X
+                
+            if self.normalization == 'batchnorm':
+                print(type(out), type(self.params[Wi]), type(self.params[bi]), i)
+                affine_out, affine_cache = affine_forward(out, self.params[Wi], self.params[bi])
+                bn_out, bn_cache = batchnorm_forward(affine_out, self.params['gamma' + str(i+1)], self.params['beta' + str(i+1)], self.bn_params[i])
+                out, relu_cache = relu_forward(bn_out)
+                caches[i+1] = (affine_cache, bn_cache, relu_cache)
+                
+            elif self.normalization == 'layernorm':
+                affine_out, affine_cache = affine_forward(out, self.params[Wi], self.params[bi])
+                bn_out, bn_cache = layernorm_forward(affine_out, self.params['gamma' + str(i+1)], self.params['beta' + str(i+1)], self.bn_params[i])
+                out, relu_cache = relu_forward(bn_out)
+                caches[i+1] = (affine_cache, bn_cache, relu_cache)
+                
+            else:
+                out, caches[i+1] = affine_relu_forward(out, self.params[Wi], self.params[bi])
+
+            
+            if self.use_dropout:
+                out, caches['dropout' + str(i+1)] = dropout_forward(out, self.dropout_param)
+            
+            
+        scores, caches[num_layers] = affine_forward(out, self.params['W' + str(num_layers)], self.params['b' + str(num_layers)])
+        
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -304,7 +335,34 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dscores = softmax_loss(scores, y)
+        
+        for i in range(num_layers, 0, -1):
+            loss += 0.5 * self.reg * np.sum(self.params['W' + str(i)] ** 2)
+            
+            if i == num_layers:
+                dout, grads['W' + str(i)], grads['b' + str(i)] = affine_backward(dscores, caches[i])
+                
+            else:
+                if self.use_dropout:
+                    dout = dropout_backward(dout, caches['dropout' + str(i)])
+                    
+                if self.normalization == 'batchnorm':
+                    affine_cache, bn_cache, relu_cache = caches[i]
+                    dbn_out = relu_backward(dout, relu_cache)
+                    daffine_out, grads['gamma' + str(i)], grads['beta' + str(i)] = batchnorm_backward(dbn_out, bn_cache)
+                    dout, grads['W' + str(i)], grads['b' + str(i)] = affine_backward(daffine_out, affine_cache)
+                    
+                elif self.normalization == 'layernorm':
+                    affine_cache, bn_cache, relu_cache = caches[i]
+                    dbn_out = relu_backward(dout, relu_cache)
+                    daffine_out, grads['gamma' + str(i)], grads['beta' + str(i)] = layernorm_backward(dbn_out, bn_cache)
+                    dout, grads['W' + str(i)], grads['b' + str(i)] = affine_backward(daffine_out, affine_cache)
+                    
+                else:
+                    dout, grads['W' + str(i)], grads['b' + str(i)] = affine_relu_backward(dout, caches[i])
+                    
+            grads['W' + str(i)] += self.reg * self.params['W' + str(i)]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
