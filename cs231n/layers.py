@@ -333,14 +333,14 @@ def batchnorm_backward(dout, cache):
 
     dvar = 0.5 * (bat_var + eps)**(-0.5) * dsqrtvar
 
-    dcarre = 1 / float(N) * np.ones((carre.shape)) * dvar
+    dcarre = 1. / float(N) * np.ones((carre.shape)) * dvar
 
-    dxmu += 2 * xmu * dcarre
+    dxmu += 2. * xmu * dcarre
 
     dx = dxmu
     dmu = - np.sum(dxmu, axis=0)
 
-    dx += 1 / float(N) * np.ones((dxmu.shape)) * dmu
+    dx += 1. / float(N) * np.ones((dxmu.shape)) * dmu
 
 
 
@@ -454,20 +454,18 @@ def layernorm_forward(x, gamma, beta, ln_param):
 
     x = x.T
     
-    mu = np.mean(x, axis=0)
+    xT_mean = np.mean(x, axis=0)
     
-    xmu = x - mu
-    carre = xmu**2
+    mvar = x - xT_mean
     var = np.var(x, axis=0)
     
     sqrtvar = np.sqrt(var + eps)
-    ivar = 1. / sqrtvar
-    xhat = xmu * ivar
+    isqrtvar = 1. / sqrtvar
+    x_norm = mvar * isqrtvar
+    x_norm = x_norm.T
     
-    xhat = xhat.T
-    
-    out = gamma * xhat + beta
-    cache = (xhat, gamma, xmu, ivar, sqrtvar, var, eps)
+    out = gamma * x_norm + beta
+    cache = (x_norm, gamma, mvar, isqrtvar, sqrtvar, var, eps)
     
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -521,19 +519,19 @@ def layernorm_backward(dout, cache):
 #     dbeta = np.sum(dout, axis=0)
 
 
-    xhat, gamma, xmu, ivar, sqrtvar, var, eps = cache
+    x_norm, gamma, mvar, isqrtvar, sqrtvar, var, eps = cache
 
     dbeta = np.sum(dout, axis=0)
-    dgamma = np.sum(xhat*dout, axis=0)
+    dgamma = np.sum(x_norm*dout, axis=0)
 
     dxhat = dout * gamma
 
-    dxhat = dxhat.T
-    xhat = xhat.T
+    dx_norm = dxhat.T
+    x_norm = x_norm.T
 
     N, D = xhat.shape
 
-    dx = 1.0/N * ivar * (N*dxhat - np.sum(dxhat, axis=0) - xhat*np.sum(dxhat*xhat, axis=0))
+    dx = 1.0/N * isqrtvar * (N*dx_norm - np.sum(dx_norm, axis=0) - x_norm*np.sum(dx_norm*x_norm, axis=0))
     dx = dx.T
 
 
@@ -674,7 +672,22 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    stride, pad = conv_param['stride'], conv_param['pad']
+    
+    # H2, W2: output size
+    H2 = 1 + (H + 2 * pad - HH) // stride
+    W2 = 1 + (W + 2 * pad - WW) // stride
+    
+    x_pad = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+    out = np.zeros([N, F, H2, W2])
+    
+    for n in range(N):
+        for f in range(F):
+            for h2 in range(H2):
+                for w2 in range(W2):
+                    out[n, f, h2, w2] = np.sum(w[f,:] * x_pad[n, :, h2*stride:h2*stride+HH, w2*stride:w2*stride+WW]) + b[f]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
