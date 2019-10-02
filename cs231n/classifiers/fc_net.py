@@ -117,7 +117,11 @@ class TwoLayerNet(object):
         loss, dx = softmax_loss(scores, y)
         loss += 0.5 * self.reg * (np.sum(W1 ** 2) + np.sum(W2 ** 2))
         
-        dh, self.grads['W2'], self.grads['b2'] = affine_backward(dx, cache_out)
+        dh, grads['W2'], grads['b2'] = affine_backward(dx, cache_out)
+        _, grads['W1'], grads['b1'] = affine_relu_backward(dh, cache_hidden)
+        
+        grads['W1'] += self.reg * self.params['W1']
+        grads['W2'] += self.reg * self.params['W2']
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -197,7 +201,8 @@ class FullyConnectedNet(object):
                 self.params[Wi] = weight_scale * np.random.randn(input_dim, hidden_dims[0])
                 self.params[bi] = np.zeros(hidden_dims[0])
                 
-                if normalization is "batchnorm" or "layernorm":
+                if normalization in ['batchnorm', 'layernorm']:
+                    print(normalization)
                     self.params['gamma' + str(i+1)] = np.ones(hidden_dims[i])
                     self.params['beta' + str(i+1)] = np.zeros(hidden_dims[i])
                 
@@ -206,7 +211,7 @@ class FullyConnectedNet(object):
                 self.params[Wi] = weight_scale * np.random.randn(hidden_dims[i-1], hidden_dims[i])
                 self.params[bi] = np.zeros(hidden_dims[i])
                 
-                if normalization is 'batchnorm' or 'layernorm':
+                if normalization in ['batchnorm', 'layernorm']:
                     self.params['gamma' + str(i+1)] = np.ones(hidden_dims[i])
                     self.params['beta' + str(i+1)] = np.zeros(hidden_dims[i])
                 
@@ -214,8 +219,8 @@ class FullyConnectedNet(object):
                 # initialize hidden_dim[i], num_classes
                 self.params[Wi] = weight_scale * np.random.randn(hidden_dims[i-1], num_classes)
                 self.params[bi] = np.zeros(num_classes)
-                
 
+                
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -288,7 +293,6 @@ class FullyConnectedNet(object):
                 out = X
                 
             if self.normalization == 'batchnorm':
-                print(type(out), type(self.params[Wi]), type(self.params[bi]), i)
                 affine_out, affine_cache = affine_forward(out, self.params[Wi], self.params[bi])
                 bn_out, bn_cache = batchnorm_forward(affine_out, self.params['gamma' + str(i+1)], self.params['beta' + str(i+1)], self.bn_params[i])
                 out, relu_cache = relu_forward(bn_out)
