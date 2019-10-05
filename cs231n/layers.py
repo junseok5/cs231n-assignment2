@@ -724,15 +724,25 @@ def conv_backward_naive(dout, cache):
     H2 = 1 + (H + 2 * pad - HH) // stride
     W2 = 1 + (W + 2 * pad - WW) // stride
     
+    # initialize gradient parameters
     x_pad = np.pad(x, ((0,0), (0, 0), (pad, pad), (pad, pad)), 'constant')
     dx_pad = np.zeros_like(x_pad)
     dw = np.zeros_like(w)
     db = np.zeros_like(b)
     
+    # gradient of b
+    for f in range(F):
+        db[f] += np.sum(dout[:, f, :, :])
+    
+    # gradient of w, x_pad
     for n in range(N):
         for f in range(F):
-            # Backpropagation 도표 그리기
-            pass
+            for h2 in range(H2):
+                for w2 in range(W2):
+                    dw[f] += x_pad[n, :, h2*stride:h2*stride+HH, w2*stride:w2*stride+WW] * dout[n, f, h2, w2]
+                    dx_pad[n, :, h2*stride:h2*stride+HH, w2*stride:w2*stride+WW] += w[f] * dout[n, f, h2, w2]
+                    
+    dx = dx_pad[:, :, pad:H+pad, pad:W+pad]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
