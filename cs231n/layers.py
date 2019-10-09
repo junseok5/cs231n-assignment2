@@ -874,7 +874,16 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    
+    # (N, C, H, W) -> (N, H, W, C) -> (N*H*W, C)
+    x_trans = np.transpose(x, (0, 2, 3, 1))
+    x_flat = np.reshape(x_trans, (N*H*W, C))
+    
+    out, cache = batchnorm_forward(x_flat, gamma, beta, bn_param)
+    
+    out = np.reshape(out, (N, H, W, C))
+    out = np.transpose(out, (0, 3, 1, 2))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -908,7 +917,15 @@ def spatial_batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = dout.shape
+    
+    dout_trans = np.transpose(dout, (0, 2, 3, 1))
+    dout_flat = np.reshape(dout_trans, (N*H*W, C))
+    
+    dx, dgamma, dbeta = batchnorm_backward(dout_flat, cache)
+    
+    dx = np.reshape(dx, (N, H, W, C))
+    dx = np.transpose(dx, (0, 3, 1, 2))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -948,7 +965,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
