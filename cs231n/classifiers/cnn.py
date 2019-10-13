@@ -55,7 +55,16 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        C, H, W = input_dim
+        
+        self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+        self.params['b1'] = np.zeros(num_filters)
+        
+        self.params['W2'] = weight_scale * np.random.randn(num_filters * H * W // 4, hidden_dim)
+        self.params['b2'] = np.zeros(hidden_dim)
+        
+        self.params['W3'] = weight_scale * np.random.randn(hidden_dim, num_classes)
+        self.params['b3'] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -95,7 +104,16 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+#         c_out, c_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+#         a_out, a_cache = affine_relu_forward(c_out, W2, b2)
+#         scores, s_cache = affine_forward(a_out, W3, b3)
+
+        c_out1, cache1  = conv_forward_fast(X, W1, b1, conv_param)
+        c_out2, cache2 = relu_forward(c_out1)
+        c_out3, cache3 = max_pool_forward_fast(c_out2, pool_param)
+        a_out1, cache4 = affine_forward(c_out3, W2, b2)
+        a_out2, cache5 = relu_forward(a_out1)
+        scores, cache6 = affine_forward(a_out2, W3, b3)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -118,7 +136,32 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dscores = softmax_loss(scores, y)
+        loss += 0.5 * self.reg * (np.sum(W1*W1) + np.sum(W2*W2) + np.sum(W3*W3))
+        
+#         da_out, grads['W3'], grads['b3'] = affine_backward(dscores, s_cache)
+#         dc_out, grads['W2'], grads['b2'] = affine_relu_backward(da_out, a_cache)
+#         print(dc_out.shape)
+#         dx, grads['W1'], grads['b1'] = conv_relu_pool_backward(dc_out, c_cache)
+        
+#         grads['W1'] += self.reg * W1
+#         grads['W2'] += self.reg * W2
+#         grads['W3'] += self.reg * W3
+        
+
+        da_out2, grads['W3'], grads['b3'] = affine_backward(dscores, cache6)
+        da_out1 = relu_backward(da_out2, cache5)
+        
+        dc_out3, grads['W2'], grads['b2'] = affine_backward(da_out1, cache4)
+        dc_out2 = max_pool_backward_fast(dc_out3, cache3)
+        
+        dc_out1 = relu_backward(dc_out2, cache2)
+        
+        dx, grads['W1'], grads['b1'] = conv_backward_fast(dc_out1, cache1)
+        
+        grads['W3'] += self.reg * W3
+        grads['W2'] += self.reg * W2
+        grads['W1'] += self.reg * W1
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################

@@ -213,17 +213,17 @@ def batchnorm_forward(x, gamma, beta, bn_param):
 
         
         xm = 1 / float(N) * np.sum(x, axis=0)
-        xmu = x - batch_mean
+        xmu = x - xm
         carre = xmu**2
         bat_var = 1 / float(N) * np.sum(carre, axis=0)
-        sqrtvar = np.sqrt(var + eps)
+        sqrtvar = np.sqrt(bat_var + eps)
         invvar = 1. / sqrtvar
         bat_va2 = xmu * invvar
-        bat_va3 = gamma * va2
-        out = va3 + beta
+        bat_va3 = gamma * bat_va2
+        out = bat_va3 + beta
 
         running_mean = momentum * running_mean + (1.0 - momentum) * xm
-        running_var = momentum * running_var + (1.0 - momentum) * var
+        running_var = momentum * running_var + (1.0 - momentum) * bat_var
 
         cache = (xm, xmu, carre, bat_var, sqrtvar, invvar,
                  bat_va2, bat_va3, gamma, beta, x, bn_param)
@@ -248,11 +248,11 @@ def batchnorm_forward(x, gamma, beta, bn_param):
 
 
         
-        bat_var = running_var
+#         bat_var = running_var
         x_norm = (x - running_mean) / np.sqrt(running_var + eps)
         out = gamma * x_norm + beta
-        cache = (mu, bat_var, gamma, beta, bn_param)
-        xm = running_mean
+#         cache = (xmu, bat_var, gamma, beta, bn_param)
+#         xm = running_mean
 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -295,7 +295,7 @@ def batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    # No refactoring code #
+    # No refactoring code
     
 #     x, norm_x, batch_mean, batch_var, eps, gamma, beta = cache
 #     N, D = x.shape
@@ -966,6 +966,24 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     N, C, H, W = x.shape
+   
+    # transpose x to implement groupnorm in conv layer
+    x = np.reshape(x, (N*G, C//G*H*W))
+    x = x.T
+    
+    x_mean = np.mean(x, axis=0)
+    xvar = x - x_mean
+    sqxvar = xvar**2
+    var = np.var(x, axis=0)
+    
+    sqrtvar = np.sqrt(var + eps)
+    ivar = 1. / sqrtvar
+    
+    xhat = xvar * ivar
+    xhat = np.reshape(xhat.T, (N, C, H, W))
+    
+    out = gamma[np.newaxis, :, np.newaxis, np.newaxis] * xhat + beta[np.newaxis, :, np.newaxis, np.newaxis]
+    cache = (G, eps, gamma, xhat, xvar, ivar, sqrtvar, var)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -995,7 +1013,25 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Initialize params
+    N, C, H, W = dout.shape
+    G, eps, gamma, xhat, xvar, ivar, sqrtvar, var = cache
+    
+    dxhat = dout * gamma
+    dbeta = np.sum(dout, axis=(0, 2, 3), keepdims=True)
+    dgamma = np.sum(dout*xhat, axis=(0, 2, 3), keepdims=True)
+    
+    # transpose to backprop
+    dxhat = np.reshape(dxhat, (N*G, C//G*H*W))
+    dxhat = dxhat.T
+    xhat = np.reshape(xhat, (N*G, C//G*H*W))
+    xhat = xhat.T
+    
+    N2, D2 = dxhat.shape
+    
+    dx = 1. / N2 * ivar * (N2*dxhat - np.sum(dxhat, axis=0) - xhat*np.sum(dxhat*xhat, axis=0))
+    dx = np.reshape(dx.T, (N, C, H, W))
+    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
